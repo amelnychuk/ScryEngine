@@ -33,6 +33,15 @@ class SubMicroProcess(MacroProcess):
         print("random function", arg)
 
 
+class PracticalProcess(MacroProcess):
+
+    def caps(self, arg):
+        return arg.lower()
+    def removeDoubleSpaces(self,arg):
+        return arg.replace("  ", " ")
+
+
+#todo add example of recursive processes
 s = SubMicroProcess()
 
 s("my sub argument")

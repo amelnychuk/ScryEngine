@@ -64,6 +64,8 @@ class Process(metaclass=MetaProcess):
 
         return processes
 
+
+
 class MicroProcess(Process):
 
     _micro = True
@@ -100,6 +102,13 @@ class Processor(object):
         for process in self._microprocesses:
             result = process(*args, **kwargs)
             self._microprocesses += result
+
+
+class Sequential(metaclass=MetaProcess):
+    pass
+
+class Functional(metaclass=MetaProcess):
+    pass
 
 
 
