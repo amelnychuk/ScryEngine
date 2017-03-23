@@ -1,12 +1,12 @@
 import time
 from collections import OrderedDict
 
-from Scraper import MicroScraper
+from ProcessFactory import MicroProcess
 
 
-class PinterestLogin(MicroScraper):
+class PinterestLogin(MicroProcess):
     def __init__(self, credentials):
-        print "Logging in"
+        print("Logging in")
         self.credentials = credentials
 
         #self.login_button_xpath = '//button[@class="//headerLoginButton active"]'
@@ -16,9 +16,10 @@ class PinterestLogin(MicroScraper):
         self.password_xpath = '//input[@type="password"]'
         self.submit_xpath = "//button[@type='submit']"
 
+    @MicroProcess.process
     def login(self, driver):
 
-        print "Loging in"
+        print("Loging in")
         elem = driver.find_element_by_xpath(self.login_button_xpath)
         elem.click()
 
@@ -71,7 +72,7 @@ class BoardCollector(Links):
 
     def printLinks(self):
         for link in self._links:
-            print link
+            print(link)
 
 #Build data base save ability with mongodb
 class saveDataBase(object):
@@ -79,7 +80,7 @@ class saveDataBase(object):
         # todo save image to disk
         elem = self._driver.find_element_by_xpath('//img[@class="pinImage rounded"]')
         if elem:
-            print elem.get_attribute('data-src')
+            print(elem.get_attribute('data-src'))
 
 
 
