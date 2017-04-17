@@ -1,10 +1,18 @@
 import time
+import urllib
+import os
 from collections import OrderedDict
 
-from ProcessFactory import MicroProcess
+from Executor import Executor
+from Museum import Curator
+from ScryEngine.microscrapers.general import Navigator, Scrollers
+
+from selenium.webdriver.common.by import By
 
 
-class PinterestLogin(MicroProcess):
+from pymongo import MongoClient
+
+class PinterestLogin(Executor):
     def __init__(self, credentials):
         print("Logging in")
         self.credentials = credentials
@@ -16,7 +24,7 @@ class PinterestLogin(MicroProcess):
         self.password_xpath = '//input[@type="password"]'
         self.submit_xpath = "//button[@type='submit']"
 
-    @MicroProcess.process
+    @Executor.task
     def login(self, driver):
 
         print("Loging in")
@@ -31,7 +39,7 @@ class PinterestLogin(MicroProcess):
 
         login_attempt = driver.find_element_by_xpath(self.submit_xpath)
         login_attempt.submit()
-        time.sleep(5)
+        time.sleep(2)
 
 
 class Links(object):
@@ -39,48 +47,131 @@ class Links(object):
         self._relatedPins = []
         self._boards = []
         #self._relatedPins.append(self._url)
-#todo figure out how to keep order of definitions
-class BoardCollector(Links):
+
+class ImageDataBase(object):
     def __init__(self):
-        super(BoardCollector, self).__init__()
+        self.client = MongoClient()
+        self.db = self.client.pinterest
+        self.images = self.db.images
+
+    def db_data(self, url, location):
+
+        post = {"url": url,
+                "diskPath": location}
+
+        return post
 
 
 
 
-    def _getBoards(self):
-        boards = self._driver.find_elements_by_css_selector('div.AggregatedCloseupCard.Module.inDidIt')
+class PinSaver(Executor, Curator):
+
+
+    #saves data to the images collection
+
+    def __init__(self):
+        #super(PinSaver, self).__init__()
+        Executor.__init__(self)
+        Curator.__init__(self, "pinterest")
+
+
+    @Executor.task
+    def getImage(self, driver):
+        elem = driver.find_element_by_xpath('//img[@class="pinImage rounded"]')
+        if elem:
+            data_src = elem.get_attribute('data-src')
+
+            if not self.exists(data_src):
+                print("Saving: ",data_src)
+
+                self.collect(data_src)
+
+
+
+
+class BoardCollector(Executor):
+    #body > div.App.AppBase.Module.full > div.appContent > div.mainContainer > div.AggregatedActivityFeed.Module.displayed > div > div > div.feedItems > div.feedContainer.gatorFeed
+    @Executor.task
+    def _getBoards(self, driver):
+        boards = driver.find_elements_by_css_selector('div.AggregatedCloseupCard.Module.inDidIt')
         for board in boards:
             board_link = board.find_element_by_css_selector("a[href*='pin']")
-            self._boards.append(board_link.get_attribute("href"))
+            driver.get(board_link.get_attribute("href"))
+
+
+            #return Navigator(url= board_link.get_attribute("href"))
+
+
+
+
+
+
+            board_container = driver.find_element_by_css_selector("div.feedContainer.gatorFeed")
+            board_summarys = board_container.find_elements_by_class_name("boardSummary")
+            print(board_summarys)
+            #todo test collection with Executors
+            Navigators = Executor()
+            for summary in board_summarys:
+                attr = summary.find_element_by_css_selector('a').get_attribute('href')
+                print("myattr: ", attr)
+                #link = "www.pinteret.com" + summary.get_attribute("href")
+                #print(link)
+                Navigators.append(Navigator(url=attr))
+                Navigators.append(PinCollector())
+            print("REturning", Navigators)
+            return Navigators
+
+#todo 3 define Pincollector object
+
+class PinCollector(Executor, Curator):
+
+    def __init__(self):
+        Executor.__init__(self)
+        Curator.__init__(self, "pinterest")
+
+    counter = 0
+
+    @Executor.task
+    def pinHolders(self, driver):
+        print("Getting PinHolders")
+
+
+        Navigators = Executor()
+        pinHolders = driver.find_elements_by_css_selector("div.pinHolder")
+        print("PinSaver count: ", PinSaver._ids)
+        for pinHolder in pinHolders[:10]:
+            #refine this to test if the pinboard?
+            link = pinHolder.find_element_by_css_selector('a').get_attribute('href')
+            #store pinboard in database?
+            #todo SUPER IMPORTANT CHECK LINK IN THE DATABASE to avoid infinite loop or have navigator hold urls.
+            if not self.exists(link):
+
+                Navigators.append(Navigator(url=link))
+                Navigators.append(PinSaver())
+                Navigators.append(Scrollers())
+
+                #Navigators.append(BoardCollector())
+                #Navigators.append(PinCollector())
+
+            else:
+                print("url exists in Curator")
+        return Navigators
+
+
+
+
+
+
+
+class relatedPins(Executor):
 
     def _getRelatedPins(self):
         related_pins = self._driver.find_elements_by_class_name("pinHolder")
         for pin in related_pins:
             link = pin.find_element_by_class_name("pinImageWrapper")
             href = link.get_attribute("href")
-            return Navigator(href)
-            self._driver.get(link.get_attribute("href"))
+            return Navigator(url=href)
 
-    def _getBoardSummarys(self):
-        board_summarys = self._driver.find_elements_by_css_selector('div.boardSummary')
-        for summary in board_summarys:
-            link = "www.pinteret.com" + summary.get_attribute("href")
-            self._relatedPins.append(link)
-
-    def getBoardPin(self):
-        pass
-
-    def printLinks(self):
-        for link in self._links:
-            print(link)
-
-#Build data base save ability with mongodb
-class saveDataBase(object):
-    def getImage(self):
-        # todo save image to disk
-        elem = self._driver.find_element_by_xpath('//img[@class="pinImage rounded"]')
-        if elem:
-            print(elem.get_attribute('data-src'))
 
 
 
@@ -88,23 +179,10 @@ class saveDataBase(object):
 #Friday test run
 class Crawler(object):
     def __init__(self):
-        #todo test Crawler
         counter = 0
         while ((self._relatedPins != 0) or counter < 5):
             counter +=1
-            url = self._relatedPins.pop()
-            #Navigate to what I want
-            self._driver.get(url)
-            #Get related pins
-            self._getRelatedPins()
 
-            #Click Main Pin and then get image
-            self._getImage()
+            #Get Pin boards
 
-            #Get Pin's board
-            self._getBoards()
-
-            #Go to boards
-            self._getBoardSummarays()
-
-            #Get Related Pins
+            #

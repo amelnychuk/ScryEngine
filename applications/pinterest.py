@@ -1,8 +1,10 @@
-from credentials.domains import PinterestClient
-from microscrapers.general import Navigator, Scrollers
-from microscrapers.pinterest import PinterestLogin
 
-from Scraper import RoboBrowser, MicroScraper, MacroScraper
+
+
+from ProcessFactory import MacroProcess, Executor
+
+
+
 
 
 
@@ -13,6 +15,9 @@ def pinscraper(url):
     Scraper.add(PinterestLogin(PinterestClient()))
     Scraper.add(Scrollers())
     return Scraper
+
+class pinterestPageScrape():
+    pass
 
 
 def pinterestCap():
@@ -27,7 +32,7 @@ def pinterestCap():
     #save image()
     #get pins
     #get boards
-    print "Scraper dict: ", Scraper.__dict__
+    print ("Scraper dict: ", Scraper.__dict__)
     #Scraper.add(saveDataBase())
     #Scraper()
 

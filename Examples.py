@@ -1,17 +1,17 @@
-from ProcessFactory import Processor, MicroProcess, MacroProcess
+from ProcessFactory import Executor, Executor, MacroProcess
 
-class ExampleProcessor(Processor):
+class ExampleProcessor(Executor):
     pass
 
 
 
 #When Inheriting from MicroProcess a wrapper is used to tag which functions will exectute when class is called.
-class ExampleMicroProcess(MicroProcess):
-    @MicroProcess.process
+class ExampleExecutor(Executor):
+    @Executor.task
     def B_print(self, arg):
         print("Test1", arg)
 
-    @MicroProcess.process
+    @Executor.task
     def A_print(self, arg):
         print("Test2", arg)
 
@@ -41,12 +41,12 @@ class PracticalProcess(MacroProcess):
         return arg.replace("  ", " ")
 
 
-#todo add example of recursive processes
+
 s = SubMicroProcess()
 
 s("my sub argument")
 
-d = ExampleMicroProcess()
+d = ExampleExecutor()
 d("my arg")
 
 ""
